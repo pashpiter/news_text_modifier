@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 import uvicorn
 import httpx
+from bs4 import BeautifulSoup
 
 
 app = FastAPI()
@@ -8,19 +10,23 @@ app = FastAPI()
 
 @app.get('/')
 async def index() -> str:
-    return "Parsing Server ver 1.0"
+    return "Hacker™ News proxy ver 1.0"
 
 
 @app.get('/send')
-async def testing_pars():
+async def adding_tm():
     async with httpx.AsyncClient() as client:
-        url = 'https://www.google.com/'
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36'
-        }
-        r = await client.get(url, headers=headers)
-        print(r.status_code)
-        return r.text
+        url = 'https://news.ycombinator.com/item?id=13713480'
+        r = await client.get(url)
+        soup = BeautifulSoup(r.text, "html.parser")
+        all_comm = soup.find_all('tr', 'athing comtr')
+        for comm in all_comm:
+            c = comm.find('span', 'commtext c00')
+            if c:
+                t = [text for text in c.stripped_strings]
+                # t = c.get_text(strip=True)
+                print(*t, end='\n----------------------------------------\n')
+        return HTMLResponse(r.text, status_code=200)
 
 
 if __name__ == "__main__":
