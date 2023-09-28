@@ -1,0 +1,9 @@
+[flake8]
+ignore =
+    I004
+exclude =
+    venv/
+    __pycache__
+    .pytest_cache
+    .coverage
+max-complexity = 10
