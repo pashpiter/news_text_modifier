@@ -15,39 +15,43 @@ app = FastAPI()
 
 @app.get('/')
 async def index() -> Response:
-    return Response('Hacker™ News proxy ver 1.0')
+    """Версия программы"""
+    return Response('Hacker™ News proxy ver 1.0', media_type='text/html')
 
 
-async def get_item(url: str, id: int):
+async def get_item(url: str, id: int) -> Response:
+    """Получение response по заданному ID"""
     async with httpx.AsyncClient() as client:
         item = f'item?id={id}'
-        r = await client.get(url+item)
+        r = await client.get(url + item)
         return r
 
 
 @app.get('/item')
 async def get_handler(id: int) -> HTMLResponse:
+    """Основной обработчик с нахождением тегов и возвратом Response"""
     url = 'https://news.ycombinator.com/'
     r = await get_item(url, id)
     soup = BeautifulSoup(r.text, "lxml")
     await static_replace(url, soup)
-    all_comm = soup.find_all('tr', 'athing comtr')  # Находим все комменты
+    titleline = soup.find('span', 'titleline').find('a')
+    all_comm = soup.find_all('span', 'commtext c00')
+    all_comm.append(titleline)
     for comm in all_comm:
-        comm_text = comm.find('span', 'commtext c00')  # Текст в комменте
-        if comm_text:
-            for content in comm_text.contents:
-                await text_extracting(content)
+        for content in comm.contents:
+            await text_extracting(content)
     return HTMLResponse(soup, status_code=200)
 
 
 async def text_editing(text: str) -> list[str]:
+    """Функция для добавления ™, если в слове 6 букв"""
     r = []
     for word in text.split():
         w = word.translate(str.maketrans(
-            '', '', string.punctuation[:6]+string.punctuation[7:]
+            '', '', string.punctuation[:6] + string.punctuation[7:]
         ))
         if word.isalpha() and len(w) == 6:
-            r.append(word+'™')
+            r.append(word + '™')
         elif not word.isalpha() and (len(w) == 7 or len(w) == 6):
             new_word = []
             for letter in word[::-1]:
@@ -65,7 +69,9 @@ async def text_editing(text: str) -> list[str]:
 async def text_extracting(
         content: Union[bs4.element.NavigableString, bs4.Tag]
 ) -> None:
-    if type(content) == bs4.element.NavigableString:
+    """Нахождение в теге других тегов. Получение текста из тегов и замена
+       на изменный текст с ™"""
+    if type(content) is bs4.element.NavigableString:
         sen = await text_editing(content)
         content.replace_with(' '. join(sen) + ' ')
     elif content.name == 'pre':
@@ -81,6 +87,7 @@ async def text_extracting(
 
 
 async def static_replace(url: str, soup: BeautifulSoup) -> None:
+    """Функция для замены статических файлов и ссылок в html"""
     links = soup.find_all('link')
     for link in links:
         link['href'] = url + link.get('href')
@@ -91,9 +98,11 @@ async def static_replace(url: str, soup: BeautifulSoup) -> None:
             link_a['href'] = LOCALHOST + link_a.get('href').rpartition('/')[-1]
 
     scrtipt = soup.find('script')
-    scrtipt['src'] = url + scrtipt.get('src')
-    img_link = soup.find('tr').find('img')
-    img_link['src'] = url + img_link.get('src')
+    if scrtipt:
+        scrtipt['src'] = url + scrtipt.get('src')
+    img_link = soup.find('tr')
+    if img_link:
+        img_link.find('img')['src'] = url + img_link.find('img').get('src')
 
 
 if __name__ == "__main__":
