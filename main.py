@@ -73,7 +73,7 @@ async def text_extracting(
        на изменный текст с ™"""
     if type(content) is bs4.element.NavigableString:
         sen = await text_editing(content)
-        content.replace_with(' '. join(sen) + ' ')
+        content.replace_with(' '. join(sen))
     elif content.name == 'pre':
         pass
     else:
@@ -83,7 +83,7 @@ async def text_extracting(
                 await text_extracting(i)
         if text:
             sen = await text_editing(text)
-            text.replace_with(' '. join(sen) + '')
+            text.replace_with(' '. join(sen))
 
 
 async def static_replace(url: str, soup: BeautifulSoup) -> None:
